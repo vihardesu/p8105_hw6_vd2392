@@ -31,15 +31,11 @@ library(p8105.datasets)
 
 ##### Visualizations
 ```{r visualiztion_setup}
-knitr::opts_chunk$set(
-  fig.width = 6,
-  fig.asp = .6,
-  out.width = "90%"
-)
-options(
-  ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
-)
+knitr::opts_chunk$set(fig.width = 6,
+                      fig.asp = .6,
+                      out.width = "90%")
+options(ggplot2.continuous.colour = "viridis",
+        ggplot2.continuous.fill = "viridis")
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
@@ -47,46 +43,49 @@ theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
 ### Problem 1
 
-```{r}
-homicide_df = 
-  read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>% 
+```{r 1.1}
+homicide_df =
+  read_csv("data/homicide-data.csv", na = c("", "NA", "Unknown")) %>%
   mutate(
     city_state = str_c(city, state, sep = ", "),
     victim_age = as.numeric(victim_age),
     resolution = case_when(
       disposition == "Closed without arrest" ~ 0,
       disposition == "Open/No arrest"        ~ 0,
-      disposition == "Closed by arrest"      ~ 1)
-  ) %>% 
+      disposition == "Closed by arrest"      ~ 1
+    )
+  ) %>%
   filter(
-    victim_race %in% c("White", "Black"),
-    !city_state %in% c("Tulsa, AL", "Dallas, TX","Phoenix, AZ", "Kansas City, MO")) %>% 
+    victim_race %in% c("White", "Black"),!city_state %in% c("Tulsa, AL", "Dallas, TX", "Phoenix, AZ", "Kansas City, MO")
+  ) %>%
   select(city_state, resolution, victim_age, victim_race, victim_sex)
 ```
 
-```{r}
+```{r 1.2}
 knitr::kable(head(homicide_df), "simple", caption="Source: Homicide Dataset")
 ```
 
-```{r}
+```{r 1.3}
 baltimore_df =
-  homicide_df %>% 
+  homicide_df %>%
   filter(city_state == "Baltimore, MD")
 
-glm(resolution ~ victim_age + victim_race + victim_sex, 
-    data = baltimore_df,
-    family = binomial()) %>% 
-  broom::tidy() %>% 
+glm(
+  resolution ~ victim_age + victim_race + victim_sex,
+  data = baltimore_df,
+  family = binomial()
+) %>%
+  broom::tidy() %>%
   mutate(
     OR = exp(estimate),
     CI_lower = exp(estimate - 1.96 * std.error),
     CI_upper = exp(estimate + 1.96 * std.error)
-  ) %>% 
-  select(term, OR, starts_with("CI")) %>% 
-  knitr::kable(digits = 3, caption="Source: Homicide Dataset")
+  ) %>%
+  select(term, OR, starts_with("CI")) %>%
+  knitr::kable(digits = 3, caption = "Source: Homicide Dataset")
 ```
 
-```{r}
+```{r 1.4}
 models_results_df = 
   homicide_df %>% 
   nest(data = -city_state) %>% 
@@ -103,12 +102,18 @@ models_results_df =
     CI_upper = exp(estimate + 1.96 * std.error)
   ) %>% 
   select(city_state, term, OR, starts_with("CI")) 
+
+knitr::kable(head(models_results_df), "simple", digits=3)
 ```
 
-```{r}
-models_results_df %>% 
+```{r 1.5}
+all_results_df = models_results_df %>% 
   filter(term == "victim_sexMale") %>% 
-  mutate(city_state = fct_reorder(city_state, OR)) %>% 
+  mutate(city_state = fct_reorder(city_state, OR)) 
+
+knitr::kable(head(all_results_df), "simple", digits=3)
+
+all_results_df %>% 
   ggplot(aes(x = city_state, y = OR)) + 
   geom_point() + 
   geom_errorbar(aes(ymin = CI_lower, ymax = CI_upper)) + 
@@ -121,7 +126,7 @@ The odds that a homicide goes unresolved if the victim is black is X times great
 
 ## Problem 2
 
-```{r}
+```{r 2.1}
 birthweight_df = 
   read_csv("data/birthweight.csv", na = c("", "NA", "Unknown")) %>% 
   mutate(
@@ -152,35 +157,34 @@ birthweight_df =
   )
 ```
 
-```{r}
-birthweight_df
-#knitr::kable(head(birthweight_df), "simple", caption="Source: Birthweight Dataset")
+```{r 2.2}
+knitr::kable(head(birthweight_df), "simple", caption="Source: Birthweight Dataset")
 ```
 
-```{r}
+```{r 2.3}
 model_one = lm(bwt ~ frace + mrace + blength, data = birthweight_df)
 
-birthweight_df %>% 
-  modelr::add_residuals(model_one) %>% 
-  modelr::add_predictions(model_one) %>% 
-  ggplot(aes(x = frace, y = resid, color=frace)) +
+birthweight_df %>%
+  modelr::add_residuals(model_one) %>%
+  modelr::add_predictions(model_one) %>%
+  ggplot(aes(x = frace, y = resid, color = frace)) +
   geom_violin() +
   labs(title = "Residuals against Fitted Values (Father's Race)",
        x = "Father's Race",
        y = "Residuals (grams)")
 
-birthweight_df %>% 
-  modelr::add_residuals(model_one) %>% 
-  modelr::add_predictions(model_one) %>% 
-  ggplot(aes(x = mrace, y = resid, color=mrace)) +
+birthweight_df %>%
+  modelr::add_residuals(model_one) %>%
+  modelr::add_predictions(model_one) %>%
+  ggplot(aes(x = mrace, y = resid, color = mrace)) +
   geom_violin() +
   labs(title = "Residuals against Fitted Values (Mother's Race)",
        x = "Mother's Race",
        y = "Residuals (grams)")
 
-birthweight_df %>% 
-  modelr::add_residuals(model_one) %>% 
-  modelr::add_predictions(model_one) %>% 
+birthweight_df %>%
+  modelr::add_residuals(model_one) %>%
+  modelr::add_predictions(model_one) %>%
   ggplot(aes(x = blength, y = resid)) +
   geom_point() +
   labs(title = "Residuals against Fitted Values (Baby Length)",
@@ -191,47 +195,129 @@ birthweight_df %>%
 The process taken to evaluate a regression model for birth weight involved a hypothesized structure of the factors of interest. Given the data available, I short listed the variables to include only the subset of variables that could be predispositions or genetically inherited. Some factors may proxy or confound genetic predisposition or inheritance and were included as well. Then, the residuals were inspected and certain variables were removed where the residuals against the fitted values did not provide much meaning i.e. the spread of the residuals was large. 
 
 
-```{r}
-
+```{r 2.4}
 model_two = lm(bwt ~ gaweeks + blength, data = birthweight_df)
-model_three = lm(bwt ~ babysex + bhead + blength + (babysex * bhead) + (blength * bhead) + (babysex * blength)  + (babysex * bhead * blength), data = birthweight_df)
+model_three = lm(
+  bwt ~ babysex + bhead + blength + (babysex * bhead) + (blength * bhead) + (babysex * blength)  + (babysex * bhead * blength),
+  data = birthweight_df
+)
 
-birthweight_df %>% 
-  gather_predictions(model_one, model_two, model_three) %>% 
-  mutate(model = fct_inorder(model)) %>% 
-  ggplot(aes(x = blength, y = bwt)) + 
+birthweight_df %>%
+  gather_predictions(model_one, model_two, model_three) %>%
+  mutate(model = fct_inorder(model)) %>%
+  ggplot(aes(x = blength, y = bwt)) +
   geom_point(alpha = .5) +
-  geom_line(aes(y = pred), color = "red") + 
-  facet_grid(~model)
+  geom_line(aes(y = pred), color = "blue") +
+  facet_grid( ~ model)
 ```
 
-```{r}
+As we can see blow, the third model has a much smaller cross-validated prediction error on average than the first two models.  
+
+```{r 2.5}
 set.seed(1)
 cv_df =
-  crossv_mc(birthweight_df, 100) %>% 
-  mutate(
-    train = map(train, as_tibble),
-    test = map(test, as_tibble))
+  crossv_mc(birthweight_df, 100) %>%
+  mutate(train = map(train, as_tibble),
+         test = map(test, as_tibble))
 
-cv_df = 
-  cv_df %>% 
+cv_df =
+  cv_df %>%
   mutate(
-    model_one  = map(train, ~lm(bwt ~ frace + mrace + blength, data = .x)),
-    model_two   = map(train, ~lm(bwt ~ gaweeks + blength, data = .x)),
-    model_three  = map(train, ~lm(bwt ~ babysex + bhead + blength + (babysex * bhead) + (blength * bhead) + (babysex * blength)  + (babysex * bhead * blength), data =  as_tibble(.x)))) %>% 
+    model_one  = map(train, ~ lm(bwt ~ frace + mrace + blength, data = .x)),
+    model_two   = map(train, ~ lm(bwt ~ gaweeks + blength, data = .x)),
+    model_three  = map(
+      train,
+      ~ lm(
+        bwt ~ babysex + bhead + blength + (babysex * bhead) + (blength * bhead) + (babysex * blength)  + (babysex * bhead * blength),
+        data =  as_tibble(.x)
+      )
+    )
+  ) %>%
   mutate(
-    rmse_one = map2_dbl(model_one, test, ~rmse(model = .x, data = .y)),
-    rmse_two    = map2_dbl(model_two, test, ~rmse(model = .x, data = .y)),
-    rmse_three = map2_dbl(model_three, test, ~rmse(model = .x, data = .y)))
+    rmse_one = map2_dbl(model_one, test, ~ rmse(model = .x, data = .y)),
+    rmse_two    = map2_dbl(model_two, test, ~ rmse(model = .x, data = .y)),
+    rmse_three = map2_dbl(model_three, test, ~ rmse(model = .x, data = .y))
+  )
 
-cv_df %>% 
-  select(starts_with("rmse")) %>% 
+cv_df %>%
+  select(starts_with("rmse")) %>%
   pivot_longer(
     everything(),
-    names_to = "model", 
+    names_to = "model",
     values_to = "rmse",
-    names_prefix = "rmse_") %>% 
-  mutate(model = fct_inorder(model)) %>% 
+    names_prefix = "rmse_"
+  ) %>%
+  mutate(model = fct_inorder(model)) %>%
   ggplot(aes(x = model, y = rmse)) + geom_violin()
 ```
 
+## Problem 3
+
+```{r 3.1}
+weather_df =
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728"),
+    var = c("PRCP", "TMIN", "TMAX"),
+    date_min = "2017-01-01",
+    date_max = "2017-12-31"
+  ) %>%
+  mutate(
+    name = recode(id, USW00094728 = "CentralPark_NY"),
+    tmin = tmin / 10,
+    tmax = tmax / 10
+  ) %>%
+  select(everything())
+
+knitr::kable(head(weather_df), "simple", digits = 3)
+```
+#### Helper Functions
+```{r 3.2}
+boot_sample = function(df) {
+  sample_frac(df, size = 1 / 10, replace = TRUE)
+}
+
+get_log_of_estimates = function(df) {
+  lm(tmax ~ tmin, data = df) %>%
+    broom::tidy() %>%
+    pull(estimate) %>%
+    cumprod(.) %>%
+    tail(., n = 1) %>%
+    log(.)
+}
+
+get_r_squared = function(df) {
+  summary(lm(tmax ~ tmin, data = df))$r.squared
+}
+```
+
+#### Create 5000 Samples
+```{r 3.3}
+boot_straps =
+  data_frame(strap_number = 1:5000,
+             strap_sample = rerun(5000, boot_sample(weather_df)))
+
+results = boot_straps %>%
+  mutate(
+    log_of_intercepts = map_dbl(strap_sample, get_log_of_estimates),
+    r_squared = map_dbl(strap_sample, get_r_squared)
+  )
+```
+
+#### Visual Distribution of Estimates
+```{r 3.4}
+r_squared_plot = results %>%
+  ggplot(aes(x = r_squared)) + geom_density() +
+  labs(title = "R Squared Estimator (n=5000)",
+       x = "R Squared",
+       y = "Density")
+
+log_of_intercepts_plot = results %>%
+  ggplot(aes(x = log_of_intercepts)) + geom_density() +
+  labs(title = "Log of Intercepts Estimator",
+       x = "Log of Intercepts",
+       y = "Density")
+
+r_squared_plot + log_of_intercepts_plot
+```
+
+The r_squared distribution over 5000 bootstrapped samples of 1/10 the size of the total dataset (n = 350) appear approximately normal with a 95% confidence interval between `r round(quantile(results$r_squared,.025), digits = 2)` and `r round(quantile(results$r_squared, .975), digits = 2)`. The log of intercepts estimator show a similar result with a slightly left-tailed normal distribution with a confidence interval of `r round(quantile(results$log_of_intercepts, .025), digits = 2)` and `r round(quantile(results$log_of_intercepts, .975), digits = 2)`.  
